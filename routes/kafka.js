@@ -31,6 +31,8 @@ exports.produce = async (req, res) => {
                 body.response = res.payload.topicData.tid
             }
             body = JSON.stringify(body)
+            const d = new Date();
+            let ms = d.getMilliseconds()
             let payload = {
                 "text": req.body.content,
                 "heading": req.body.title,
@@ -42,7 +44,7 @@ exports.produce = async (req, res) => {
                 "id": "GEbX4X0B9pbA_yqYBUtM",
                 "flaggedBy": "system_flagged",
                 "url": null,
-                "timestamp": Date.now(),
+                "timestamp": ms,
                 "author": req.body.email,
                 "feedbackOriginPlatform": "IGOT",
                 "feedbackOriginCategory": "discussions",
