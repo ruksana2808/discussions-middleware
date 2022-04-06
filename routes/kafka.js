@@ -88,28 +88,31 @@ exports.consume = async () => {
         // this function is called every time the consumer gets a new message
         eachMessage: ({ message }) => {
             // here, we just log the message to the standard output
-
-            let val = message.value
-            val = val.toString()
-            val = JSON.parse(val)
-            console.log(val)
-            if (val.raw) {
-                let raw = val.raw
-                raw.replace(/({)([a-zA-Z0-9]+)(:)/, '$1"$2"$3')
-                console.log(raw)
-                raw = JSON.parse(raw)
-                console.log('class ===>', raw.classification)
-                if (moderation_flag && moderation_type === 'post-moderation') {
-                    if (val.classification != "SFW") {
-                        moderation.deleteTopic(val, raw)
-                    }
-                } else if (moderation_flag && moderation_type === 'pre-moderation') {
-                    if (val.classification === "SFW") {
-                        moderation.createTopic(val, raw)
-                    } else {
-                        moderation.sendNotification(val, raw)
+            try {
+                let val = message.value
+                val = val.toString()
+                val = JSON.parse(val)
+                console.log(val)
+                if (val.raw) {
+                    let raw = val.raw
+                    raw.replace(/({)([a-zA-Z0-9]+)(:)/, '$1"$2"$3')
+                    console.log(raw)
+                    raw = JSON.parse(raw)
+                    console.log('class ===>', raw.classification)
+                    if (moderation_flag && moderation_type === 'post-moderation') {
+                        if (val.classification != "SFW") {
+                            moderation.deleteTopic(val, raw)
+                        }
+                    } else if (moderation_flag && moderation_type === 'pre-moderation') {
+                        if (val.classification === "SFW") {
+                            moderation.createTopic(val, raw)
+                        } else {
+                            moderation.sendNotification(val, raw)
+                        }
                     }
                 }
+            } catch (err) {
+                console.log(err)
             }
         },
     })
