@@ -37,14 +37,12 @@ exports.produce = async (req, res) => {
                 "raw": body,
                 "type": "TEXT",
                 "profaneStrings": [
-                    "maniac",
-                    "thug"
                 ],
                 "classification": null,
                 "id": "GEbX4X0B9pbA_yqYBUtM",
                 "flaggedBy": "system_flagged",
                 "url": null,
-                "timestamp": Math.floor(Date.now() / 1000),
+                "timestamp": Date.now(),
                 "author": req.body.email,
                 "feedbackOriginPlatform": "IGOT",
                 "feedbackOriginCategory": "discussions",
