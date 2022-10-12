@@ -1,6 +1,10 @@
 const proxyUtils = require('../proxy/proxyUtils.js')
 const proxy = require('express-http-proxy');
-const { NODEBB_SERVICE_URL, nodebb_api_slug, moderation_flag, moderation_type } = require('../helpers/environmentVariablesHelper.js');
+const { NODEBB_SERVICE_URL,
+  nodebb_api_slug,
+  moderation_flag,
+  moderation_type,
+DISCUSSION_CATEGORY_LIST } = require('../helpers/environmentVariablesHelper.js');
 const { logger } = require('@project-sunbird/logger');
 const BASE_REPORT_URL = "/discussion";
 const express = require('express');
@@ -77,6 +81,7 @@ app.get(`${BASE_REPORT_URL}/user/:userslug/posts`, proxyObject())
 // categories apis
 app.get(`${BASE_REPORT_URL}/category/:category_id/:slug`, proxyObject());
 app.get(`${BASE_REPORT_URL}/categories`, proxyObject());
+app.get(`${BASE_REPORT_URL}/categoriesMain`, proxyObject());
 app.get(`${BASE_REPORT_URL}/category/:cid`, proxyObject());
 app.get(`${BASE_REPORT_URL}/categories/:cid/moderators`, proxyObject());
 
@@ -123,6 +128,7 @@ app.delete(`${BASE_REPORT_URL}/v2/topics/:tid/pin`, proxyObject());
 
 // categories apis
 app.post(`${BASE_REPORT_URL}/v2/categories`, proxyObject());
+app.post(`${BASE_REPORT_URL}/v2/mainCategories`, updateRequest(), proxyObject());
 app.put(`${BASE_REPORT_URL}/v2/categories/:cid`, proxyObject());
 app.delete(`${BASE_REPORT_URL}/v2/categories/:cid`, proxyObject());
 app.put(`${BASE_REPORT_URL}/v2/categories/:cid/state`, proxyObject());
@@ -184,6 +190,15 @@ if (moderation_flag) {
   kafka.consume()
 }
 
+function updateRequest() {
+  return (req, res, next) => {
+    logger.info({msg: 'Calling updaterequest for url ' + req.url});
+    req.url = `${req.url}?${DISCUSSION_CATEGORY_LIST || ''}`
+    logger.info({msg: 'Updated for url ' + req.url + ' with ' + DISCUSSION_CATEGORY_LIST || ''});
+    // do modify
+    next()
+  };
+}
 
 
 function isEditablePost() {

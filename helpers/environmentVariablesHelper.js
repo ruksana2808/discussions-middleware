@@ -23,7 +23,8 @@ let devEnvVariables = {
     moderation_course: env.moderation_course || 'Sunbird training',
     LEARNER_SERVICE_URL: env.learner_service_url || 'https://igot-dev.in',
     SB_API_KEY: env.SB_API_KEY || 'bearer abc',
-    enable_audit_event: env.enable_audit_event || true
+    enable_audit_event: env.enable_audit_event || true,
+    DISCUSSION_CATEGORY_LIST: env.DISCUSSION_CATEGORY_LIST || 'cid[]=2&cid[]=3&cid[]=4&cid[]=5&cid[]=6',
 }
 
 module.exports = devEnvVariables;
