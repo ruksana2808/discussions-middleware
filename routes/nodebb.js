@@ -190,7 +190,7 @@ if (moderation_flag) {
 }
 
 function updateRequest() {
-  console.log('updateRequest before return ------------- ', req.ur)
+  console.log('updateRequest before return ------------- ')
   return (req, res, next) => {
     console.log('updateRequest inside ------------- ', req.ur)
     logger.info({message: 'Calling updaterequest for url ' + req.url});
