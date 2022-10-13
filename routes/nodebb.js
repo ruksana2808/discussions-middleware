@@ -68,6 +68,7 @@ app.get(`${BASE_REPORT_URL}/tags`, proxyObject());
 app.post(`${BASE_REPORT_URL}/tags/list`, proxyObject());
 app.get(`${BASE_REPORT_URL}/tags/:tag`, proxyObject());
 app.get(`${BASE_REPORT_URL}/categories`, proxyObject());
+app.get(`${BASE_REPORT_URL}/mainCategories`, proxyObject());
 app.post(`${BASE_REPORT_URL}/category/list`, proxyObject());
 app.get(`${BASE_REPORT_URL}/notifications`, proxyObject());
 
@@ -81,7 +82,6 @@ app.get(`${BASE_REPORT_URL}/user/:userslug/posts`, proxyObject())
 // categories apis
 app.get(`${BASE_REPORT_URL}/category/:category_id/:slug`, proxyObject());
 app.get(`${BASE_REPORT_URL}/categories`, proxyObject());
-app.get(`${BASE_REPORT_URL}/categoriesMain`, proxyObject());
 app.get(`${BASE_REPORT_URL}/category/:cid`, proxyObject());
 app.get(`${BASE_REPORT_URL}/categories/:cid/moderators`, proxyObject());
 
@@ -128,7 +128,6 @@ app.delete(`${BASE_REPORT_URL}/v2/topics/:tid/pin`, proxyObject());
 
 // categories apis
 app.post(`${BASE_REPORT_URL}/v2/categories`, proxyObject());
-app.post(`${BASE_REPORT_URL}/v2/mainCategories`, updateRequest(), proxyObject());
 app.put(`${BASE_REPORT_URL}/v2/categories/:cid`, proxyObject());
 app.delete(`${BASE_REPORT_URL}/v2/categories/:cid`, proxyObject());
 app.put(`${BASE_REPORT_URL}/v2/categories/:cid/state`, proxyObject());
