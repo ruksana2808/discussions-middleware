@@ -193,7 +193,7 @@ function updateRequest() {
   console.log('updateRequest before return ------------- ')
   return (req, res, next) => {
     logger.info({message: 'Calling updaterequest for url ' + req.url});
-    req.url = `${req.url}?${DISCUSSION_CATEGORY_LIST || ''}`
+    req.url = `${req.url}&${DISCUSSION_CATEGORY_LIST || ''}`
     req.url = req.url.replace('/mainCategories', '/categories');
     logger.info({msg: 'Updated for url ' + req.url + ' with ' + DISCUSSION_CATEGORY_LIST || ''});
     // do modify
