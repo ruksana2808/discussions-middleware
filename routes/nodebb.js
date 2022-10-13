@@ -68,7 +68,7 @@ app.get(`${BASE_REPORT_URL}/tags`, proxyObject());
 app.post(`${BASE_REPORT_URL}/tags/list`, proxyObject());
 app.get(`${BASE_REPORT_URL}/tags/:tag`, proxyObject());
 app.get(`${BASE_REPORT_URL}/categories`, proxyObject());
-app.get(`${BASE_REPORT_URL}/mainCategories`, proxyObject());
+app.get(`${BASE_REPORT_URL}/mainCategories`, updateRequest(), proxyObject());
 app.post(`${BASE_REPORT_URL}/category/list`, proxyObject());
 app.get(`${BASE_REPORT_URL}/notifications`, proxyObject());
 
@@ -190,8 +190,10 @@ if (moderation_flag) {
 }
 
 function updateRequest() {
+  console.log('updateRequest before return ------------- ', req.ur)
   return (req, res, next) => {
-    logger.info({msg: 'Calling updaterequest for url ' + req.url});
+    console.log('updateRequest inside ------------- ', req.ur)
+    logger.info({message: 'Calling updaterequest for url ' + req.url});
     req.url = `${req.url}?${DISCUSSION_CATEGORY_LIST || ''}`
     logger.info({msg: 'Updated for url ' + req.url + ' with ' + DISCUSSION_CATEGORY_LIST || ''});
     // do modify
