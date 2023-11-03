@@ -226,6 +226,7 @@ function proxyObject() {
           return resCode;
         } else {
           edata['message'] = `${req.originalUrl} successfull`;
+	  logger.info({ message: `${req.originalUrl} found ${data}`})
           const resCode = proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, null)
           logTelemetryEvent(req, res, data, proxyResData, proxyRes, resCode)
           logMessage(edata, req);
