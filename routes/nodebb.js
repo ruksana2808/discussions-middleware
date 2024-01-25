@@ -52,13 +52,6 @@ app.get(`${BASE_REPORT_URL}/categories`, proxyObject());
 app.post(`${BASE_REPORT_URL}/category/list`, proxyObject());
 app.get(`${BASE_REPORT_URL}/notifications`, proxyObject());
 
-app.get(`${BASE_REPORT_URL}/user/:userslug`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/upvoted`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/downvoted`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/bookmarks`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/best`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/posts`, proxyObject())
-
 // categories apis
 app.get(`${BASE_REPORT_URL}/category/:category_id/:slug`, proxyObject());
 app.get(`${BASE_REPORT_URL}/categories`, proxyObject());
@@ -83,15 +76,6 @@ app.get(`${BASE_REPORT_URL}/groups/:slug/members`, proxyObject());
 
 // post apis
 app.get(`${BASE_REPORT_URL}/recent/posts/:day`, proxyObject());
-
-// all admin apis
-app.get(`${BASE_REPORT_URL}/user/admin/watched`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/info`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/bookmarks`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/posts`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/groups`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/upvoted`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/downvoted`, proxyObject());
 
 // topics apis
 app.post(`${BASE_REPORT_URL}/v2/topics`, proxyObject());
@@ -458,5 +442,22 @@ async function getUserByUsername(username) {
       return user;
     }
 }
+
+// all admin apis
+app.get(`${BASE_REPORT_URL}/user/admin/watched`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/info`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/bookmarks`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/posts`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/groups`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/upvoted`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/downvoted`, proxyObject());
+
+app.get(`${BASE_REPORT_URL}/user/:userslug`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/upvoted`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/downvoted`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/bookmarks`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/best`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/posts`, proxyObject())
+
 module.exports = app;
 // module.exports.logMessage = logMessage;
