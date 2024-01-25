@@ -1,6 +1,6 @@
 const proxyUtils = require('../proxy/proxyUtils.js')
 const proxy = require('express-http-proxy');
-const { NODEBB_SERVICE_URL, nodebb_api_slug, ADMIN_AUTHORIZATION_TOKEN } = require('../helpers/environmentVariablesHelper.js');
+const { NODEBB_SERVICE_URL, nodebb_api_slug, Authorization } = require('../helpers/environmentVariablesHelper.js');
 const { logger } = require('@project-sunbird/logger');
 const BASE_REPORT_URL = "/discussion";
 const express = require('express');
@@ -12,8 +12,8 @@ const telemetry = new Telemetry()
 const methodSlug = '/update';
 const nodebbServiceUrl = NODEBB_SERVICE_URL+ nodebb_api_slug;
 const _ = require('lodash')
-const adminAuthorizationToken = ADMIN_AUTHORIZATION_TOKEN;
 const axios = require('axios');
+const authorization = Authorization;
 
 let logObj = {
   "eid": "LOG",
@@ -140,7 +140,7 @@ app.delete(`${BASE_REPORT_URL}/v2/users/:uid/tokens/:token`, proxyObject());
 //app.get(`${BASE_REPORT_URL}/user/username/:username`, proxyObject());
 
 //app.post(`${BASE_REPORT_URL}/user/v1/create`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/username/:username`, async (req, res) => {
+app.get(`${BASE_REPORT_URL}/user/:username`, async (req, res) => {
   try {
     const username = req.params.username; // Assuming the username is provided in the request body
     //telemetryHelper.logAPIEvent(req, 'discussion-middleware');
@@ -148,7 +148,7 @@ app.get(`${BASE_REPORT_URL}/user/username/:username`, async (req, res) => {
     const user = await createUserIfNotExists(username);
 
     // Continue with your logic, for example, you can send the user data in the response
-    res.status(200).json({ user });
+    res.status(200).json(user);
   } catch (error) {
     // Handle errors appropriately
     logger.error({ message: "Error creating/checking user:", error });
@@ -416,7 +416,7 @@ async function createUserIfNotExists(username) {
         username: username
       }, {
         headers: {
-          'Authorization': 'Bearer ' + adminAuthorizationToken,
+          'Authorization': 'Bearer ' + authorization,
           'Content-Type': 'application/json'
         }
       });
@@ -434,12 +434,12 @@ async function createUserIfNotExists(username) {
 
 async function getUserByUsername(username) {
   const getUserResponse = await axios.get(nodebbServiceUrl + `/user/username/${username}`);
-  const user = getUserResponse.data;
 
     if (getUserResponse.status === 200) {
+      logger.info(getUserResponse.data)
       // User exists, return the user data
-      logger.info({ message: "User exists:", user });
-      return user;
+      logger.info({ message: "User exists:", username });
+      return getUserResponse.data;
     }
 }
 
@@ -452,7 +452,7 @@ app.get(`${BASE_REPORT_URL}/user/admin/groups`, proxyObject());
 app.get(`${BASE_REPORT_URL}/user/admin/upvoted`, proxyObject());
 app.get(`${BASE_REPORT_URL}/user/admin/downvoted`, proxyObject());
 
-app.get(`${BASE_REPORT_URL}/user/:userslug`, proxyObject())
+//app.get(`${BASE_REPORT_URL}/user/:userslug`, proxyObject())
 app.get(`${BASE_REPORT_URL}/user/:userslug/upvoted`, proxyObject())
 app.get(`${BASE_REPORT_URL}/user/:userslug/downvoted`, proxyObject())
 app.get(`${BASE_REPORT_URL}/user/:userslug/bookmarks`, proxyObject())
