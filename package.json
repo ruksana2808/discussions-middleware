@@ -8,6 +8,7 @@
     "coverage": "nyc --reporter=lcov --reporter=text-lcov npm run backend-test"
   },
   "dependencies": {
+    "axios": "^0.19.1",
     "@project-sunbird/logger": "^0.0.9",
     "chai": "4.2.0",
     "chai-http": "^4.3.0",
