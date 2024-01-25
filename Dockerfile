@@ -6,5 +6,5 @@ MAINTAINER anjana <anjanapb7@gmail.com>
 WORKDIR /work
 COPY ./ /work
 EXPOSE 3002
-RUN npm i
+RUN npm install --only=production
 CMD npm run start
