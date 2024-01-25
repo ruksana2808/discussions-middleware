@@ -1,6 +1,6 @@
 const proxyUtils = require('../proxy/proxyUtils.js')
 const proxy = require('express-http-proxy');
-const { NODEBB_SERVICE_URL, nodebb_api_slug } = require('../helpers/environmentVariablesHelper.js');
+const { NODEBB_SERVICE_URL, nodebb_api_slug, ADMIN_AUTHORIZATION_TOKEN } = require('../helpers/environmentVariablesHelper.js');
 const { logger } = require('@project-sunbird/logger');
 const BASE_REPORT_URL = "/discussion";
 const express = require('express');
@@ -12,6 +12,8 @@ const telemetry = new Telemetry()
 const methodSlug = '/update';
 const nodebbServiceUrl = NODEBB_SERVICE_URL+ nodebb_api_slug;
 const _ = require('lodash')
+const adminAuthorizationToken = ADMIN_AUTHORIZATION_TOKEN;
+const axios = require('axios');
 
 let logObj = {
   "eid": "LOG",
@@ -151,9 +153,24 @@ app.delete(`${BASE_REPORT_URL}/v2/users/:uid/ban`, proxyObject());
 app.get(`${BASE_REPORT_URL}/v2/users/:uid/tokens`, proxyObject());
 app.post(`${BASE_REPORT_URL}/v2/users/:uid/tokens`, proxyObject());
 app.delete(`${BASE_REPORT_URL}/v2/users/:uid/tokens/:token`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/username/:username`, proxyObject());
+//app.get(`${BASE_REPORT_URL}/user/username/:username`, proxyObject());
 
-app.post(`${BASE_REPORT_URL}/user/v1/create`, proxyObject());
+//app.post(`${BASE_REPORT_URL}/user/v1/create`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/username/:username`, async (req, res) => {
+  try {
+    const username = req.params.username; // Assuming the username is provided in the request body
+    telemetryHelper.logAPIEvent(req, 'discussion-middleware');
+    // Use the createUserIfNotExists function to check and create the user
+    const user = await createUserIfNotExists(username);
+
+    // Continue with your logic, for example, you can send the user data in the response
+    res.status(200).json({ user });
+  } catch (error) {
+    // Handle errors appropriately
+    logger.error({ message: "Error creating/checking user:", error });
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 app.get(`${BASE_REPORT_URL}/user/uid/:uid`, proxyObject());
 
 function isEditablePost() {
@@ -405,5 +422,41 @@ function logApiErrorEventV2 (req, data, option) {
 }) 
 }
 
+async function createUserIfNotExists(username) {
+  try {
+    return await getUserByUsername(username);
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      logger.info({ message: "User not found, creating user..."});
+      const createResponse = await axios.post(nodebbServiceUrl + '/v2/users?_uid=1', {
+        username: username
+      }, {
+        headers: {
+          'Authorization': 'Bearer ' + adminAuthorizationToken,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (createResponse.status === 200) {
+        // User exists, return the user data
+        return await getUserByUsername(username);
+      }
+      
+    }
+    // Handle errors appropriately
+    logger.error({ message: "Error checking/creating user:", error });
+    throw error;
+  }
+}
+
+async function getUserByUsername(username) {
+  const getUserResponse = await axios.get(nodebbServiceUrl + `/user/username/${username}`);
+  const user = getUserResponse.data;
+
+    if (getUserResponse.status === 200) {
+      // User exists, return the user data
+      logger.info({ message: "User exists:", user });
+      return user;
+    }
+}
 module.exports = app;
 // module.exports.logMessage = logMessage;
