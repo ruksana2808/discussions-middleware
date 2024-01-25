@@ -143,7 +143,7 @@ app.delete(`${BASE_REPORT_URL}/v2/users/:uid/tokens/:token`, proxyObject());
 app.get(`${BASE_REPORT_URL}/user/username/:username`, async (req, res) => {
   try {
     const username = req.params.username; // Assuming the username is provided in the request body
-    telemetryHelper.logAPIEvent(req, 'discussion-middleware');
+    //telemetryHelper.logAPIEvent(req, 'discussion-middleware');
     // Use the createUserIfNotExists function to check and create the user
     const user = await createUserIfNotExists(username);
 
