@@ -454,7 +454,7 @@ async function createUserIfNotExists(username) {
 }
 
 async function getUserByUsername(username) {
-  const getUserResponse = await axios.get(nodebbServiceUrl + `/user/username/${username}`);
+  const getUserResponse = await axios.get(nodebbServiceUrl + `/user/${username}`);
 
     if (getUserResponse.status === 200) {
       logger.info(getUserResponse.data)
