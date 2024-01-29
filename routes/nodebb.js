@@ -150,7 +150,7 @@ app.post(`${BASE_REPORT_URL}/user/v1/create`, async (req, res) => {
     const user = await createUserIfNotExists(username);
 
     // Continue with your logic, for example, you can send the user data in the response
-    res.status(200).json(user);
+    res.status(200).json({result: { userId: user}});
   } catch (error) {
     // Handle errors appropriately
     logger.error({ message: "Error creating/checking user:", error });
