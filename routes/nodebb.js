@@ -196,6 +196,7 @@ function proxyObject() {
     proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
     proxyReqPathResolver: function (req) {
       let urlParam = req.originalUrl.replace(BASE_REPORT_URL, '');
+      urlParam = urlParam + "?_uid=1";
       logger.info({"message": `request comming from ${req.originalUrl}`})
       let query = require('url').parse(req.url).query;
       if (query) {
