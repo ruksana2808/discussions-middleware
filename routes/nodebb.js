@@ -141,7 +141,7 @@ app.delete(`${BASE_REPORT_URL}/v2/users/:uid/tokens/:token`, proxyObject());
 
 app.post(`${BASE_REPORT_URL}/user/v1/create`, async (req, res) => {
   try {
-    const username = req.body.username; // Assuming the username is provided in the request body
+    const username = req.body.request.username; // Assuming the username is provided in the request body
     if (!username || username.trim() === '') {
       return res.status(400).json({ error: 'Username is required' });
     }
