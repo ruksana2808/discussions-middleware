@@ -139,12 +139,33 @@ app.post(`${BASE_REPORT_URL}/v2/users/:uid/tokens`, proxyObject());
 app.delete(`${BASE_REPORT_URL}/v2/users/:uid/tokens/:token`, proxyObject());
 //app.get(`${BASE_REPORT_URL}/user/username/:username`, proxyObject());
 
-//app.post(`${BASE_REPORT_URL}/user/v1/create`, proxyObject());
+app.post(`${BASE_REPORT_URL}/user/v1/create`, async (req, res) => {
+  try {
+    const username = req.body.username; // Assuming the username is provided in the request body
+    if (!username || username.trim() === '') {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    //telemetryHelper.logAPIEvent(req, 'discussion-middleware');
+    // Use the createUserIfNotExists function to check and create the user
+    const user = await createUserIfNotExists(username);
+
+    // Continue with your logic, for example, you can send the user data in the response
+    res.status(200).json(user);
+  } catch (error) {
+    // Handle errors appropriately
+    logger.error({ message: "Error creating/checking user:", error });
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 app.get(`${BASE_REPORT_URL}/user/:username`, async (req, res) => {
   try {
     const username = req.params.username; // Assuming the username is provided in the request body
     //telemetryHelper.logAPIEvent(req, 'discussion-middleware');
     // Use the createUserIfNotExists function to check and create the user
+    if (!username || username.trim() === '') {
+      return res.status(400).json({ error: 'Username is required' });
+    }
     const user = await createUserIfNotExists(username);
 
     // Continue with your logic, for example, you can send the user data in the response
@@ -196,7 +217,6 @@ function proxyObject() {
     proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
     proxyReqPathResolver: function (req) {
       let urlParam = req.originalUrl.replace(BASE_REPORT_URL, '');
-      urlParam = urlParam + "?_uid=1";
       logger.info({"message": `request comming from ${req.originalUrl}`})
       let query = require('url').parse(req.url).query;
       if (query) {
