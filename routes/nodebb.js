@@ -1,6 +1,6 @@
 const proxyUtils = require('../proxy/proxyUtils.js')
 const proxy = require('express-http-proxy');
-const { NODEBB_SERVICE_URL, nodebb_api_slug, Authorization } = require('../helpers/environmentVariablesHelper.js');
+const { NODEBB_SERVICE_URL, nodebb_api_slug, Authorization, lms_user_read_path, sunbird_learner_service_host } = require('../helpers/environmentVariablesHelper.js');
 const { logger } = require('@project-sunbird/logger');
 const BASE_REPORT_URL = "/discussion";
 const express = require('express');
@@ -14,6 +14,8 @@ const nodebbServiceUrl = NODEBB_SERVICE_URL+ nodebb_api_slug;
 const _ = require('lodash')
 const axios = require('axios');
 const authorization = Authorization;
+const learnerServiceHost = sunbird_learner_service_host;
+const userReadPath = lms_user_read_path;
 
 let logObj = {
   "eid": "LOG",
@@ -137,22 +139,20 @@ app.delete(`${BASE_REPORT_URL}/v2/users/:uid/ban`, proxyObject());
 app.get(`${BASE_REPORT_URL}/v2/users/:uid/tokens`, proxyObject());
 app.post(`${BASE_REPORT_URL}/v2/users/:uid/tokens`, proxyObject());
 app.delete(`${BASE_REPORT_URL}/v2/users/:uid/tokens/:token`, proxyObject());
-//app.get(`${BASE_REPORT_URL}/user/username/:username`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/username/:username`, proxyObject());
 
 app.post(`${BASE_REPORT_URL}/user/v1/create`, async (req, res) => {
   try {
-    const username = req.body.request.username; // Assuming the username is provided in the request body
+    const username = req.body.request.username;
     if (!username || username.trim() === '') {
       return res.status(400).json({ error: 'Username is required' });
     }
     //telemetryHelper.logAPIEvent(req, 'discussion-middleware');
     // Use the createUserIfNotExists function to check and create the user
-    const user = await createUserIfNotExists(username);
+    const user = await createUserIfNotExists(req);
 
-    // Continue with your logic, for example, you can send the user data in the response
     res.status(200).json({result: { userId: user}});
   } catch (error) {
-    // Handle errors appropriately
     logger.error({ message: "Error creating/checking user:", error });
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -166,12 +166,10 @@ app.get(`${BASE_REPORT_URL}/user/:username`, async (req, res) => {
     if (!username || username.trim() === '') {
       return res.status(400).json({ error: 'Username is required' });
     }
-    const user = await createUserIfNotExists(username);
+    const user = await createUserIfNotExists(req);
 
-    // Continue with your logic, for example, you can send the user data in the response
     res.status(200).json(user);
   } catch (error) {
-    // Handle errors appropriately
     logger.error({ message: "Error creating/checking user:", error });
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -427,14 +425,32 @@ function logApiErrorEventV2 (req, data, option) {
 }) 
 }
 
-async function createUserIfNotExists(username) {
+async function createUserIfNotExists(request) {
+  const username = request.params.username || request.body.request.username;
+  logger.info("username " + username);
   try {
     return await getUserByUsername(username);
   } catch (error) {
     if (error.response && error.response.status === 404) {
+      let userEmail = null;
+      let fullName = null;
+      if (request.body.request != undefined) {
+        userEmail = request.body.request.email;
+        fullName = request.body.request.fullname;
+      }
+      
+      if (!userEmail || userEmail.trim() === '') {
+        const userInfo = await getUserInfo(request.headers['authorization'], request.headers['x-authenticated-user-token'], request.headers['x-authenticated-user-id'])
+        userEmail = userInfo.primaryEmail;
+        fullName = userInfo.fullName;
+      }
+      
       logger.info({ message: "User not found, creating user..."});
       const createResponse = await axios.post(nodebbServiceUrl + '/v2/users?_uid=1', {
-        username: username
+        username: username,
+        fullname:  fullName,
+				email: userEmail,
+				isAdmin: false,
       }, {
         headers: {
           'Authorization': 'Bearer ' + authorization,
@@ -445,7 +461,7 @@ async function createUserIfNotExists(username) {
         // User exists, return the user data
         return await getUserByUsername(username);
       }
-      
+
     }
     // Handle errors appropriately
     logger.error({ message: "Error checking/creating user:", error });
@@ -461,6 +477,32 @@ async function getUserByUsername(username) {
       // User exists, return the user data
       logger.info({ message: "User exists:", username });
       return getUserResponse.data;
+    }
+}
+
+async function getUserInfo(userAuthorization, AutheticatedUserToken, identifier) {
+  const userReadResponse = await axios.get(learnerServiceHost + userReadPath + identifier,
+    {
+      headers: {
+        'Authorization': userAuthorization,
+        'x-authenticated-user-token': AutheticatedUserToken
+      },
+      'Content-Type': 'application/json'
+    });
+
+    if (userReadResponse.status === 200) {
+      const primaryEmail = userReadResponse.data.result.response.profileDetails.personalDetails.primaryEmail;
+      const fullName = userReadResponse.data.result.response.firstName;
+      if (userReadResponse.data.result.response.lastName != null) {
+        fullName = fullName + " " + lastName;
+      }
+      logger.info({ message: "User exists:", primaryEmail });
+      if (!primaryEmail || primaryEmail.trim() === '') {
+        logger.error({ message: "Issue with fetching userEmail", error });
+        throw error;
+      } else {
+        return {primaryEmail, fullName};
+      }
     }
 }
 
