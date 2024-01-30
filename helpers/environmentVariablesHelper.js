@@ -8,6 +8,10 @@ let devEnvVariables = {
     nodebb_api_slug: env.nodebb_api_slug || '/discussions/api',
     sunbird_learner_service_host: 'http://learner-service:9000/',
     lms_user_read_path: 'private/user/v1/read/',
+    CASSANDRA_IP: env.CASSANDRA_IP || '10.177.157.30',
+    CASSANDRA_KEYSPACE: env.CASSANDRA_KEYSPACE || 'xyz',
+    CASSANDRA_PASSWORD: env.CASSANDRA_PASSWORD || '',
+    CASSANDRA_USERNAME: env.CASSANDRA_USERNAME || '',
 }
 
 module.exports = devEnvVariables;

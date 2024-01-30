@@ -1,6 +1,7 @@
 const proxyUtils = require('../proxy/proxyUtils.js')
 const proxy = require('express-http-proxy');
-const { NODEBB_SERVICE_URL, nodebb_api_slug, Authorization, lms_user_read_path, sunbird_learner_service_host } = require('../helpers/environmentVariablesHelper.js');
+const { NODEBB_SERVICE_URL, nodebb_api_slug, Authorization, lms_user_read_path, sunbird_learner_service_host, 
+  CASSANDRA_IP, CASSANDRA_KEYSPACE } = require('../helpers/environmentVariablesHelper.js');
 const { logger } = require('@project-sunbird/logger');
 const BASE_REPORT_URL = "/discussion";
 const express = require('express');
@@ -16,6 +17,7 @@ const axios = require('axios');
 const authorization = Authorization;
 const learnerServiceHost = sunbird_learner_service_host;
 const userReadPath = lms_user_read_path;
+const cassandraDriver = require('cassandra-driver')
 
 let logObj = {
   "eid": "LOG",
@@ -434,9 +436,11 @@ async function createUserIfNotExists(request) {
     if (error.response && error.response.status === 404) {
       let userEmail = null;
       let fullName = null;
+      let identifier = null;
       if (request.body.request != undefined) {
         userEmail = request.body.request.email;
         fullName = request.body.request.fullname;
+        identifier = request.body.request.identifier;
       }
       
       // if (!userEmail || userEmail.trim() === '') {
@@ -459,7 +463,11 @@ async function createUserIfNotExists(request) {
       });
       if (createResponse.status === 200) {
         // User exists, return the user data
-        return await getUserByUsername(username);
+        const nodeBBUser = await getUserByUsername(username);
+        if (!identifier || identifier.trim() != '') {
+          await updateNodeBBId(identifier, nodeBBUser.uid)
+        }
+        return nodeBBUser;
       }
 
     }
@@ -476,8 +484,41 @@ async function getUserByUsername(username) {
       logger.info(getUserResponse.data)
       // User exists, return the user data
       logger.info({ message: "User exists:", username });
-      return getUserResponse.data;
+            return getUserResponse.data;
     }
+}
+
+function getIPList() {
+  return CASSANDRA_IP.split(',');
+}
+
+const cassandraClientOptions = /** @type {cassandraDriver.ClientOptions} */ ({
+  contactPoints: getIPList(),
+  keyspace: CASSANDRA_KEYSPACE,
+  localDataCenter: 'datacenter1',
+  queryOptions: {
+      prepare: true,
+  },
+});
+
+async function updateNodeBBId(identifier, nodeBBId) {
+  try {
+    const clientConnect = new cassandraDriver.Client(cassandraClientOptions)
+    const query = `UPDATE ${CASSANDRA_KEYSPACE}.user SET nodeBBId = ? WHERE id = ?`;
+    const params = [nodeBBId, identifier]
+    clientConnect.execute(query, params, (err, _result) => {
+      if (!err) {
+        clientConnect.shutdown()
+        logger.info('Update Query to user_access_paths successful')
+      } else if (err) {
+        clientConnect.shutdown()
+        logger.error(`ERROR executing the query >> ${query}`)
+      }
+    })
+    // })
+  } catch (err) {
+    logger.error(' >', err)
+  }
 }
 
 async function getUserInfo(userAuthorization, AutheticatedUserToken, identifier) {
