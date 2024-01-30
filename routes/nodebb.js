@@ -439,11 +439,11 @@ async function createUserIfNotExists(request) {
         fullName = request.body.request.fullname;
       }
       
-      if (!userEmail || userEmail.trim() === '') {
-        const userInfo = await getUserInfo(request.headers['authorization'], request.headers['x-authenticated-user-token'], request.headers['x-authenticated-user-id'])
-        userEmail = userInfo.primaryEmail;
-        fullName = userInfo.fullName;
-      }
+      // if (!userEmail || userEmail.trim() === '') {
+      //   const userInfo = await getUserInfo(request.headers['authorization'], request.headers['x-authenticated-user-token'], request.headers['x-authenticated-user-id'])
+      //   userEmail = userInfo.primaryEmail;
+      //   fullName = userInfo.fullName;
+      // }
       
       logger.info({ message: "User not found, creating user..."});
       const createResponse = await axios.post(nodebbServiceUrl + '/v2/users?_uid=1', {
