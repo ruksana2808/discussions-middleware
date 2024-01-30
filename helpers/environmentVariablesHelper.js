@@ -9,6 +9,7 @@ let devEnvVariables = {
     sunbird_learner_service_host: 'http://learner-service:9000/',
     lms_user_read_path: 'private/user/v1/read/',
     CASSANDRA_IP: env.CASSANDRA_IP || '10.177.157.30',
+    CASSANDRA_IP_PORT: env.CASSANDRA_IP_PORT || '9042',
     CASSANDRA_KEYSPACE: env.CASSANDRA_KEYSPACE || 'xyz',
     CASSANDRA_PASSWORD: env.CASSANDRA_PASSWORD || '',
     CASSANDRA_USERNAME: env.CASSANDRA_USERNAME || '',
