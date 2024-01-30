@@ -1,7 +1,7 @@
 const proxyUtils = require('../proxy/proxyUtils.js')
 const proxy = require('express-http-proxy');
 const { NODEBB_SERVICE_URL, nodebb_api_slug, Authorization, lms_user_read_path, sunbird_learner_service_host, 
-  CASSANDRA_IP, CASSANDRA_KEYSPACE } = require('../helpers/environmentVariablesHelper.js');
+  CASSANDRA_IP, CASSANDRA_KEYSPACE,CASSANDRA_IP_PORT } = require('../helpers/environmentVariablesHelper.js');
 const { logger } = require('@project-sunbird/logger');
 const BASE_REPORT_URL = "/discussion";
 const express = require('express');
@@ -489,7 +489,9 @@ async function getUserByUsername(username) {
 }
 
 function getIPList() {
-  return CASSANDRA_IP.split(',');
+  const ipAddressList = CASSANDRA_IP.split(',');
+  const ipAddressWithPortList = ipAddressList.map(ipAddress => `${ipAddress}:${CASSANDRA_IP_PORT}`);
+  return ipAddressWithPortList;
 }
 
 const cassandraClientOptions = /** @type {cassandraDriver.ClientOptions} */ ({
