@@ -1,6 +1,7 @@
 const proxyUtils = require('../proxy/proxyUtils.js')
 const proxy = require('express-http-proxy');
-const { NODEBB_SERVICE_URL, nodebb_api_slug } = require('../helpers/environmentVariablesHelper.js');
+const { NODEBB_SERVICE_URL, nodebb_api_slug, Authorization, lms_user_read_path, sunbird_learner_service_host, 
+  CASSANDRA_IP, CASSANDRA_KEYSPACE,CASSANDRA_IP_PORT } = require('../helpers/environmentVariablesHelper.js');
 const { logger } = require('@project-sunbird/logger');
 const BASE_REPORT_URL = "/discussion";
 const express = require('express');
@@ -12,6 +13,11 @@ const telemetry = new Telemetry()
 const methodSlug = '/update';
 const nodebbServiceUrl = NODEBB_SERVICE_URL+ nodebb_api_slug;
 const _ = require('lodash')
+const axios = require('axios');
+const authorization = Authorization;
+const learnerServiceHost = sunbird_learner_service_host;
+const userReadPath = lms_user_read_path;
+const cassandraDriver = require('cassandra-driver')
 
 let logObj = {
   "eid": "LOG",
@@ -50,13 +56,6 @@ app.get(`${BASE_REPORT_URL}/categories`, proxyObject());
 app.post(`${BASE_REPORT_URL}/category/list`, proxyObject());
 app.get(`${BASE_REPORT_URL}/notifications`, proxyObject());
 
-app.get(`${BASE_REPORT_URL}/user/:userslug`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/upvoted`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/downvoted`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/bookmarks`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/best`, proxyObject())
-app.get(`${BASE_REPORT_URL}/user/:userslug/posts`, proxyObject())
-
 // categories apis
 app.get(`${BASE_REPORT_URL}/category/:category_id/:slug`, proxyObject());
 app.get(`${BASE_REPORT_URL}/categories`, proxyObject());
@@ -81,15 +80,6 @@ app.get(`${BASE_REPORT_URL}/groups/:slug/members`, proxyObject());
 
 // post apis
 app.get(`${BASE_REPORT_URL}/recent/posts/:day`, proxyObject());
-
-// all admin apis
-app.get(`${BASE_REPORT_URL}/user/admin/watched`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/info`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/bookmarks`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/posts`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/groups`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/upvoted`, proxyObject());
-app.get(`${BASE_REPORT_URL}/user/admin/downvoted`, proxyObject());
 
 // topics apis
 app.post(`${BASE_REPORT_URL}/v2/topics`, proxyObject());
@@ -153,7 +143,39 @@ app.post(`${BASE_REPORT_URL}/v2/users/:uid/tokens`, proxyObject());
 app.delete(`${BASE_REPORT_URL}/v2/users/:uid/tokens/:token`, proxyObject());
 app.get(`${BASE_REPORT_URL}/user/username/:username`, proxyObject());
 
-app.post(`${BASE_REPORT_URL}/user/v1/create`, proxyObject());
+app.post(`${BASE_REPORT_URL}/user/v1/create`, async (req, res) => {
+  try {
+    const username = req.body.request.username;
+    if (!username || username.trim() === '') {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    //telemetryHelper.logAPIEvent(req, 'discussion-middleware');
+    // Use the createUserIfNotExists function to check and create the user
+    const user = await createUserIfNotExists(req);
+
+    res.status(200).json({result: { userId: user}});
+  } catch (error) {
+    logger.error({ message: "Error creating/checking user:", error });
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get(`${BASE_REPORT_URL}/user/:username`, async (req, res) => {
+  try {
+    const username = req.params.username; // Assuming the username is provided in the request body
+    //telemetryHelper.logAPIEvent(req, 'discussion-middleware');
+    // Use the createUserIfNotExists function to check and create the user
+    if (!username || username.trim() === '') {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    const user = await createUserIfNotExists(req);
+
+    res.status(200).json(user);
+  } catch (error) {
+    logger.error({ message: "Error creating/checking user:", error });
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 app.get(`${BASE_REPORT_URL}/user/uid/:uid`, proxyObject());
 
 function isEditablePost() {
@@ -404,6 +426,144 @@ function logApiErrorEventV2 (req, data, option) {
   actor: _.pickBy(actor, value => !_.isEmpty(value))
 }) 
 }
+
+async function createUserIfNotExists(request) {
+  const username = request.params.username || request.body.request.username;
+  logger.info("username " + username);
+  try {
+    return await getUserByUsername(username);
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      let userEmail = null;
+      let fullName = null;
+      let identifier = null;
+      if (request.body.request != undefined) {
+        userEmail = request.body.request.email;
+        fullName = request.body.request.fullname;
+        identifier = request.body.request.identifier;
+      }
+      
+      // if (!userEmail || userEmail.trim() === '') {
+      //   const userInfo = await getUserInfo(request.headers['authorization'], request.headers['x-authenticated-user-token'], request.headers['x-authenticated-user-id'])
+      //   userEmail = userInfo.primaryEmail;
+      //   fullName = userInfo.fullName;
+      // }
+      
+      logger.info({ message: "User not found, creating user..."});
+      const createResponse = await axios.post(nodebbServiceUrl + '/v2/users?_uid=1', {
+        username: username,
+        fullname:  fullName,
+				email: userEmail,
+				isAdmin: false,
+      }, {
+        headers: {
+          'Authorization': 'Bearer ' + authorization,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (createResponse.status === 200) {
+        // User exists, return the user data
+        const nodeBBUser = await getUserByUsername(username);
+        if (!identifier || identifier.trim() != '') {
+          await updateNodeBBId(identifier, nodeBBUser.uid)
+        }
+        return nodeBBUser;
+      }
+
+    }
+    // Handle errors appropriately
+    logger.error({ message: "Error checking/creating user:", error });
+    throw error;
+  }
+}
+
+async function getUserByUsername(username) {
+  const getUserResponse = await axios.get(nodebbServiceUrl + `/user/${username}`);
+
+    if (getUserResponse.status === 200) {
+      logger.info(getUserResponse.data)
+      // User exists, return the user data
+      logger.info({ message: "User exists:", username });
+            return getUserResponse.data;
+    }
+}
+
+function getIPList() {
+  const ipAddressList = CASSANDRA_IP.split(',');
+  const ipAddressWithPortList = ipAddressList.map(ipAddress => `${ipAddress}:${CASSANDRA_IP_PORT}`);
+  return ipAddressWithPortList;
+}
+
+const cassandraClientOptions = /** @type {cassandraDriver.ClientOptions} */ ({
+  contactPoints: getIPList(),
+  keyspace: CASSANDRA_KEYSPACE,
+  localDataCenter: 'datacenter1',
+  queryOptions: {
+      prepare: true,
+  },
+});
+
+async function updateNodeBBId(identifier, nodeBBId) {
+  try {
+    const clientConnect = new cassandraDriver.Client(cassandraClientOptions)
+    const query = `UPDATE ${CASSANDRA_KEYSPACE}.user SET nodeBBId = ? WHERE id = ?`;
+    const params = [nodeBBId, identifier]
+    clientConnect.execute(query, params, (err, _result) => {
+      if (!err) {
+        clientConnect.shutdown()
+        logger.info('Update Query to user_access_paths successful')
+      } else if (err) {
+        clientConnect.shutdown()
+        logger.error(`ERROR executing the query >> ${query}`)
+      }
+    })
+    // })
+  } catch (err) {
+    logger.error(' >', err)
+  }
+}
+
+async function getUserInfo(userAuthorization, AutheticatedUserToken, identifier) {
+  const userReadResponse = await axios.get(learnerServiceHost + userReadPath + identifier,
+    {
+      headers: {
+        'Authorization': userAuthorization,
+        'x-authenticated-user-token': AutheticatedUserToken
+      },
+      'Content-Type': 'application/json'
+    });
+
+    if (userReadResponse.status === 200) {
+      const primaryEmail = userReadResponse.data.result.response.profileDetails.personalDetails.primaryEmail;
+      const fullName = userReadResponse.data.result.response.firstName;
+      if (userReadResponse.data.result.response.lastName != null) {
+        fullName = fullName + " " + lastName;
+      }
+      logger.info({ message: "User exists:", primaryEmail });
+      if (!primaryEmail || primaryEmail.trim() === '') {
+        logger.error({ message: "Issue with fetching userEmail", error });
+        throw error;
+      } else {
+        return {primaryEmail, fullName};
+      }
+    }
+}
+
+// all admin apis
+app.get(`${BASE_REPORT_URL}/user/admin/watched`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/info`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/bookmarks`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/posts`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/groups`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/upvoted`, proxyObject());
+app.get(`${BASE_REPORT_URL}/user/admin/downvoted`, proxyObject());
+
+//app.get(`${BASE_REPORT_URL}/user/:userslug`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/upvoted`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/downvoted`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/bookmarks`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/best`, proxyObject())
+app.get(`${BASE_REPORT_URL}/user/:userslug/posts`, proxyObject())
 
 module.exports = app;
 // module.exports.logMessage = logMessage;

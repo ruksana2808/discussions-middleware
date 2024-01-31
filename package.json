@@ -8,6 +8,7 @@
     "coverage": "nyc --reporter=lcov --reporter=text-lcov npm run backend-test"
   },
   "dependencies": {
+    "axios": "^0.19.1",
     "@project-sunbird/logger": "^0.0.9",
     "chai": "4.2.0",
     "chai-http": "^4.3.0",
@@ -32,6 +33,7 @@
     "sb-config-util": "file:libs/sb-config-util",
     "sb_logger_util": "file:libs/sb_logger_util",
     "sb_telemetry_util": "file:libs/sb_telemetry_util",
-    "sinon": "^9.2.2"
+    "sinon": "^9.2.2",
+    "cassandra-driver": "^4.1.0"
   }
 }
